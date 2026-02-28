@@ -1,0 +1,28 @@
+{
+  "name": "solana-arb-bot",
+  "version": "1.0.0",
+  "description": "Solana arbitrage bot with paper trading mode",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "init-db": "node src/db/init.js",
+    "test": "node src/test.js"
+  },
+  "keywords": [
+    "solana",
+    "arbitrage",
+    "defi",
+    "trading"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@solana/web3.js": "^1.98.4",
+    "axios": "^1.7.9",
+    "better-sqlite3": "^11.7.0",
+    "bs58": "^6.0.0",
+    "dotenv": "^16.4.7"
+  }
+}

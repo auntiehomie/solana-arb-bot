@@ -1,0 +1,41 @@
+{
+  "name": "solana-arb-bot",
+  "version": "1.0.0",
+  "description": "Production-ready Solana arbitrage bot monitoring Raydium, Orca, Jupiter, and Meteora",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node --project tsconfig.json src/index.ts",
+    "dev:watch": "nodemon --exec ts-node src/index.ts --watch src --ext ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@jup-ag/api": "^6.0.0",
+    "@solana/web3.js": "^1.95.4",
+    "axios": "^1.7.9",
+    "bs58": "^6.0.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3",
+    "nodemon": "^3.1.9"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "solana",
+    "arbitrage",
+    "defi",
+    "jito",
+    "jupiter",
+    "raydium",
+    "orca",
+    "meteora"
+  ],
+  "license": "MIT"
+}

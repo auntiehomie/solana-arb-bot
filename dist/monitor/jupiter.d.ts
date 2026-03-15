@@ -5,6 +5,7 @@
  * and to get per-DEX quotes via the `dexes` filter param.
  */
 import { DexQuote, Token } from '../types';
+export declare function setJupiterApiKey(key: string): void;
 export interface JupiterQuoteResponse {
     inputMint: string;
     inAmount: string;

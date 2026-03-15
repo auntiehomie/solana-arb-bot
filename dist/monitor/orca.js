@@ -17,7 +17,7 @@ const logger_1 = require("../utils/logger");
 const ORCA_POOL_API = 'https://api.mainnet.orca.so/v1/whirlpool/list';
 let poolCache = [];
 let poolCacheAt = 0;
-const POOL_CACHE_TTL = 60_000;
+const POOL_CACHE_TTL = 15_000;
 async function getOrcaPools() {
     const now = Date.now();
     if (poolCache.length > 0 && now - poolCacheAt < POOL_CACHE_TTL) {

@@ -11,6 +11,15 @@ import { logger } from '../utils/logger';
 
 const QUOTE_URL = 'https://quote-api.jup.ag/v6/quote';
 
+let _jupiterApiKey = '';
+export function setJupiterApiKey(key: string): void {
+  _jupiterApiKey = key;
+}
+
+function jupiterHeaders(): Record<string, string> {
+  return _jupiterApiKey ? { 'x-api-key': _jupiterApiKey } : {};
+}
+
 export interface JupiterQuoteResponse {
   inputMint: string;
   inAmount: string;
@@ -33,7 +42,7 @@ async function fetchWithBackoff<T>(
 ): Promise<T> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const resp = await axios.get<T>(url, { params, timeout: 8000 });
+      const resp = await axios.get<T>(url, { params, timeout: 8000, headers: jupiterHeaders() });
       return resp.data;
     } catch (err) {
       const axiosErr = err as AxiosError;

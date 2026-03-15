@@ -27,6 +27,11 @@ export const TOKENS: Record<string, Token> = {
     mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
     decimals: 5,
   },
+  USDC: {
+    symbol: 'USDC',
+    mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+    decimals: 6,
+  },
 };
 
 export type TokenSymbol = keyof typeof TOKENS;
@@ -76,6 +81,9 @@ export interface ArbitrageOpportunity {
   profitPct: number;
   profitUsd: number;
   detectedAt: number;
+  isTriangular?: boolean;
+  triangularPath?: string;
+  triangularLegs?: DexQuote[];
 }
 
 // ─── Jito types ───────────────────────────────────────────────────────────────

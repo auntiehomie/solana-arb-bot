@@ -52,6 +52,7 @@ function loadConfig() {
         walletPrivateKey: requireEnv('WALLET_PRIVATE_KEY'),
         jitoUuid: optionalEnv('JITO_UUID', ''),
         jitoEndpoint: 'https://mainnet.block-engine.jito.wtf/api/v1/bundles',
+        jupiterApiKey: optionalEnv('JUPITER_API_KEY', ''),
         jitoTipAccount: '96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5',
         jitoTipLamports: BigInt(parseInt_(('JITO_TIP_LAMPORTS'), 10000)),
         minProfitPct: parseFloat_('MIN_PROFIT_PCT', 1.0),
@@ -61,6 +62,9 @@ function loadConfig() {
         scanIntervalMs: parseInt_('SCAN_INTERVAL_MS', 1000),
         dryRun: parseBool('DRY_RUN', true),
         maxTradesPerMinute: parseInt_('MAX_TRADES_PER_MINUTE', 5),
+        raydiumMinIntervalMs: parseInt_('RAYDIUM_MIN_INTERVAL_MS', 500),
+        startingCapitalUsd: parseFloat_('STARTING_CAPITAL_USD', 15),
+        tradeSizes: (process.env.TRADE_SIZES || '0.1').split(',').map(s => parseFloat(s)).filter(n => !isNaN(n) && n > 0),
     };
     return _config;
 }

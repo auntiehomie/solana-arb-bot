@@ -16,7 +16,7 @@ const logger_1 = require("../utils/logger");
 const METEORA_PAIR_API = 'https://dlmm-api.meteora.ag/pair/all';
 let pairCache = [];
 let pairCacheAt = 0;
-const PAIR_CACHE_TTL = 60_000;
+const PAIR_CACHE_TTL = 15_000;
 async function getMeteoraPairs() {
     const now = Date.now();
     if (pairCache.length > 0 && now - pairCacheAt < PAIR_CACHE_TTL) {

@@ -15,11 +15,11 @@ const COINGECKO_IDS: Record<string, string> = {
   BONK:  'bonk',
 };
 
-// Jupiter Price API — try lite-api first (different host), then price.jup.ag
+// Jupiter Price API v2 (current endpoints as of 2024)
+// price.jup.ag is deprecated — use api.jup.ag
 const JUPITER_PRICE_URLS = [
-  'https://lite-api.jup.ag/price/v2',
   'https://api.jup.ag/price/v2',
-  'https://price.jup.ag/v6/price',
+  'https://lite-api.jup.ag/v1/prices',
 ];
 
 const MINT_BY_SYMBOL: Record<string, string> = {
@@ -31,7 +31,16 @@ const MINT_BY_SYMBOL: Record<string, string> = {
 
 let cachedPrices: UsdPrices = {};
 let lastFetchedAt = 0;
-const CACHE_TTL_MS = 60_000;  // 60s — reduces CoinGecko hammering
+const CACHE_TTL_MS = 120_000; // 2 min — reduces CoinGecko hammering
+
+let _jupiterPriceApiKey = '';
+export function setJupiterPriceApiKey(key: string): void {
+  _jupiterPriceApiKey = key;
+}
+
+function jupiterPriceHeaders(): Record<string, string> {
+  return _jupiterPriceApiKey ? { 'x-api-key': _jupiterPriceApiKey } : {};
+}
 
 export async function getUsdPrices(symbols: string[]): Promise<UsdPrices> {
   const now = Date.now();
@@ -39,21 +48,31 @@ export async function getUsdPrices(symbols: string[]): Promise<UsdPrices> {
     return cachedPrices;
   }
 
+  // Try Jupiter
   try {
     cachedPrices = await fetchJupiterPrices(symbols);
     lastFetchedAt = now;
     return cachedPrices;
-  } catch (err) {
-    logger.warn('Jupiter price fetch failed, trying CoinGecko fallback', err);
+  } catch {
+    logger.debug('Jupiter price fetch failed, trying DexScreener');
   }
 
+  // Try DexScreener (no key, generous limits)
+  try {
+    cachedPrices = await fetchDexScreenerPrices(symbols);
+    lastFetchedAt = now;
+    return cachedPrices;
+  } catch {
+    logger.debug('DexScreener price fetch failed, trying CoinGecko');
+  }
+
+  // Try CoinGecko last (rate-limited)
   try {
     cachedPrices = await fetchCoinGeckoPrices(symbols);
     lastFetchedAt = now;
     return cachedPrices;
   } catch (err) {
-    logger.error('CoinGecko price fetch also failed', err);
-    // Return stale cache or empty
+    logger.warn('All price sources failed — using stale/empty prices, profitUsd will be 0');
     return cachedPrices;
   }
 }
@@ -69,6 +88,7 @@ async function fetchJupiterPrices(symbols: string[]): Promise<UsdPrices> {
       }>(url, {
         params: { ids },
         timeout: 5000,
+        headers: jupiterPriceHeaders(),
       });
 
       const prices: UsdPrices = {};
@@ -89,6 +109,31 @@ async function fetchJupiterPrices(symbols: string[]): Promise<UsdPrices> {
   }
 
   throw lastErr ?? new Error('All Jupiter price endpoints failed');
+}
+
+async function fetchDexScreenerPrices(symbols: string[]): Promise<UsdPrices> {
+  // DexScreener token profiles endpoint — no API key, generous rate limits
+  const mints = symbols.map((s) => MINT_BY_SYMBOL[s]).filter(Boolean);
+  const prices: UsdPrices = {};
+
+  // Fetch in parallel, one request per token (DexScreener doesn't do batch by mint)
+  await Promise.allSettled(
+    symbols.map(async (symbol) => {
+      const mint = MINT_BY_SYMBOL[symbol];
+      if (!mint) return;
+      const resp = await axios.get<{ pairs: Array<{ priceUsd: string }> }>(
+        `https://api.dexscreener.com/latest/dex/tokens/${mint}`,
+        { timeout: 6000 }
+      );
+      const pair = resp.data?.pairs?.[0];
+      if (pair?.priceUsd) {
+        prices[symbol] = parseFloat(pair.priceUsd);
+      }
+    })
+  );
+
+  if (Object.keys(prices).length === 0) throw new Error('DexScreener returned no prices');
+  return prices;
 }
 
 async function fetchCoinGeckoPrices(symbols: string[]): Promise<UsdPrices> {

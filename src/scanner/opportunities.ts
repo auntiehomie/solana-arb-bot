@@ -17,7 +17,7 @@ export interface ScannerConfig {
 }
 
 // Anything above this is almost certainly a stale/spot-price artifact, not real arb
-const MAX_REALISTIC_PROFIT_PCT = 10;
+const MAX_REALISTIC_PROFIT_PCT = 15;
 
 /**
  * Given quotes from multiple DEXes for the same pair, find all profitable
@@ -60,7 +60,7 @@ export function scanOpportunities(
         // To sell outputToken→inputToken the price is 1/sellQuote.price (inputToken per outputToken)
         //
         // Expected return from selling buyQuote.outputAmount of outputToken:
-        //   return (inputToken units) = buyQuote.outputAmount * (1 / sellQuote.price)
+        //   return (inputToken units) = buyOutputLamports * (1 / sellQuote.price)
         //
         // But we need to compare in raw units (lamports), so:
         //   returnInputLamports = buyOutputLamports * inputDecimals / outputDecimals / sellQuote.price
@@ -134,10 +134,10 @@ export function scanOpportunities(
     return b.profitPct - a.profitPct;
   });
 
-  // Deduplicate: keep only best opportunity per (inputSymbol, outputSymbol) pair
+  // Deduplicate: keep only best opportunity per (inputSymbol, outputSymbol, buyDex, sellDex) pair
   const seen = new Set<string>();
   return opportunities.filter((opp) => {
-    const key = `${opp.inputSymbol}:${opp.outputSymbol}`;
+    const key = `${opp.inputSymbol}:${opp.outputSymbol}:${opp.buyDex}:${opp.sellDex}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;

@@ -9,15 +9,23 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.setJupiterApiKey = setJupiterApiKey;
 exports.fetchJupiterQuote = fetchJupiterQuote;
 exports.fetchJupiterQuoteViaDex = fetchJupiterQuoteViaDex;
 const axios_1 = __importDefault(require("axios"));
 const logger_1 = require("../utils/logger");
 const QUOTE_URL = 'https://quote-api.jup.ag/v6/quote';
+let _jupiterApiKey = '';
+function setJupiterApiKey(key) {
+    _jupiterApiKey = key;
+}
+function jupiterHeaders() {
+    return _jupiterApiKey ? { 'x-api-key': _jupiterApiKey } : {};
+}
 async function fetchWithBackoff(url, params, retries = 3) {
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
-            const resp = await axios_1.default.get(url, { params, timeout: 8000 });
+            const resp = await axios_1.default.get(url, { params, timeout: 8000, headers: jupiterHeaders() });
             return resp.data;
         }
         catch (err) {

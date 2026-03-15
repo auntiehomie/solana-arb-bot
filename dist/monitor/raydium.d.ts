@@ -1,15 +1,14 @@
 /**
- * Raydium price checker.
+ * Raydium price checker — v3 API + Jupiter routing fallback.
  *
- * Strategy: fetch Raydium CLMM pool list, find pools matching our token pairs,
- * compute an effective swap price from pool state (sqrtPriceX64).
+ * Strategy (in order):
+ *   1. Jupiter router restricted to Raydium routes (most accurate, real price impact)
+ *   2. Raydium v3 REST API pool data (CLMM + CPMM) — cached 5 min
+ *   3. Stale cache if all else fails
  *
- * As a simpler fallback we also use the Jupiter router restricted to Raydium.
+ * Raydium v2 API (/ammV3/ammPools) was heavily rate-limited.
+ * Raydium v3 API (api-v3.raydium.io) is the current official endpoint.
  */
 import { DexQuote, Token } from '../types';
-/**
- * Get Raydium price for inputToken → outputToken.
- * Returns null on failure.
- */
 export declare function fetchRaydiumQuote(inputToken: Token, outputToken: Token, inputAmountLamports: bigint, slippageBps: number): Promise<DexQuote | null>;
 //# sourceMappingURL=raydium.d.ts.map

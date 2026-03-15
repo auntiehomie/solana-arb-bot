@@ -28,7 +28,7 @@ interface OrcaPoolListResponse {
 
 let poolCache: OrcaPool[] = [];
 let poolCacheAt = 0;
-const POOL_CACHE_TTL = 60_000;
+const POOL_CACHE_TTL = 15_000;
 
 async function getOrcaPools(): Promise<OrcaPool[]> {
   const now = Date.now();

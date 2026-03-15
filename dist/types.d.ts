@@ -41,6 +41,9 @@ export interface ArbitrageOpportunity {
     profitPct: number;
     profitUsd: number;
     detectedAt: number;
+    isTriangular?: boolean;
+    triangularPath?: string;
+    triangularLegs?: DexQuote[];
 }
 export interface JitoBundleRequest {
     jsonrpc: '2.0';

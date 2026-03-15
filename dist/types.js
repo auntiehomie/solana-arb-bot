@@ -23,5 +23,10 @@ exports.TOKENS = {
         mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
         decimals: 5,
     },
+    USDC: {
+        symbol: 'USDC',
+        mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+        decimals: 6,
+    },
 };
 //# sourceMappingURL=types.js.map

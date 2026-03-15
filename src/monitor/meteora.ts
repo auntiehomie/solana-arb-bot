@@ -24,7 +24,7 @@ interface MeteoraPair {
 
 let pairCache: MeteoraPair[] = [];
 let pairCacheAt = 0;
-const PAIR_CACHE_TTL = 60_000;
+const PAIR_CACHE_TTL = 15_000;
 
 async function getMeteoraPairs(): Promise<MeteoraPair[]> {
   const now = Date.now();

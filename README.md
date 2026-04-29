@@ -200,6 +200,24 @@ Tip = `max(JITO_TIP_LAMPORTS, 1% of expected profit in lamports)`
 
 ---
 
+## Fee Modeling
+
+All profit thresholds (`MIN_PROFIT_PCT`, `MIN_PROFIT_USD`) are evaluated against **net profit after fees** — not gross quote output. The bot estimates:
+
+| Fee Component | Amount | Notes |
+|---|---|---|
+| Base tx fee | 5,000 lam/tx × 2 legs | Solana network floor |
+| Priority fee | ~25,000 lam/tx × 2 legs | Auto mode conservative estimate |
+| Jito tip | configurable (default 10,000 lam) | Only in live mode |
+| **Total (dry-run)** | **~60,000 lam (~$0.009 at $150 SOL)** | |
+| **Total (live)** | **~70,000+ lam** | Depends on Jito tip config |
+
+At startup the bot logs the **fee floor %** for your current trade size and SOL price so you can set `MIN_PROFIT_PCT` appropriately.
+
+> Example: 0.1 SOL trade at $150/SOL = $15 USD. Fee floor ≈ 0.04% gross = ~$0.006. Setting `MIN_PROFIT_PCT=0.1` means you need at least $0.015 net after fees — a reasonable margin.
+
+---
+
 ## Limitations & Caveats
 
 - **Pool-price vs. simulated-price gap**: Raydium/Orca/Meteora direct API prices don't account for price impact on your specific trade size. For large trades, actual output may be lower.

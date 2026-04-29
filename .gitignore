@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment — NEVER commit private keys or secrets
+.env
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

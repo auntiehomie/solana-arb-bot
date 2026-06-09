@@ -1,267 +1,233 @@
-# Solana Arbitrage Bot - Paper Trading
+# Solana Arbitrage Bot 🤖
 
-A fully functional Solana arbitrage bot that monitors prices across multiple DEXes (Jupiter, Raydium, Phoenix) and executes **simulated paper trades** to test strategies before going live.
-
-## Features
-
-- 📊 **Multi-DEX Price Monitoring**: Jupiter (primary), Raydium, Phoenix (optional)
-- 📝 **Paper Trading Mode**: Simulate trades without risking real funds
-- 💬 **Discord Integration**: Real-time notifications via webhook
-- 💾 **SQLite Database**: Complete trade history and P&L tracking
-- 📈 **Automated Reporting**: Daily summaries and biweekly performance reports
-- 🔄 **Auto-Restart**: Keeps running with automatic crash recovery
-- ⚡ **Rate Limited**: Batches updates to avoid spam and API limits
-
-## Quick Start
-
-### 1. Installation
-
-```bash
-cd /root/.openclaw/workspace/solana-arb-bot
-npm install
-```
-
-### 2. Configuration
-
-Copy the example environment file and configure:
-
-```bash
-cp .env.example .env
-nano .env
-```
-
-**Required configuration:**
-
-```env
-# Get your Alchemy API key from: https://www.alchemy.com/
-SOLANA_RPC_URL=https://solana-mainnet.g.alchemy.com/v2/YOUR_API_KEY
-
-# Get webhook URL from Discord channel settings
-DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/YOUR_WEBHOOK_URL
-```
-
-**Optional configuration:**
-
-- `STARTING_CAPITAL`: Initial paper trading balance (default: 20)
-- `SLIPPAGE_TOLERANCE`: Max slippage percentage (default: 0.03 = 3%)
-- `MIN_PROFIT_PERCENT`: Minimum profit threshold (default: 0.005 = 0.5%)
-- `MIN_PROFIT_ABSOLUTE`: Minimum dollar profit (default: 0.10)
-- `UPDATE_INTERVAL`: Scan frequency in minutes (default: 15)
-- `MONITOR_PAIRS`: Token pairs to watch (default: SOL/USDC,RAY/USDC,BONK/USDC)
-
-### 3. Initialize Database
-
-```bash
-npm run init-db
-```
-
-### 4. Run the Bot
-
-**Option A: Direct run (foreground)**
-```bash
-npm start
-```
-
-**Option B: Auto-restart wrapper (recommended)**
-```bash
-chmod +x run.sh stop.sh
-./run.sh &
-```
-
-**Option C: Background with nohup**
-```bash
-nohup ./run.sh > /dev/null 2>&1 &
-```
-
-### 5. Stop the Bot
-
-```bash
-./stop.sh
-```
-
-Or press `Ctrl+C` if running in foreground.
-
-## Discord Notifications
-
-The bot sends the following notifications:
-
-1. **Startup Confirmation**: Bot configuration and status
-2. **Trade Summaries**: Details of each simulated trade executed
-3. **Daily Summary** (23:00 UTC): Day's trading performance
-4. **Biweekly Report** (Every 14 days): Detailed P&L analysis
-
-### Setting Up Discord Webhook
-
-1. Go to your Discord server
-2. Select the channel for notifications
-3. Click the gear icon → Integrations → Webhooks
-4. Create New Webhook
-5. Copy the Webhook URL
-6. Paste it into `.env` as `DISCORD_WEBHOOK_URL`
-
-## Paper Trading Logic
-
-The bot simulates trades with the following logic:
-
-- **Position Sizing**: Uses 20% of available balance per trade
-- **Slippage Modeling**: Accounts for 3% slippage (configurable)
-- **Profit Thresholds**: Only trades if profit exceeds 0.5% OR $0.10
-- **Balance Tracking**: Updates hypothetical balance after each trade
-- **Gas Estimation**: Minimum absolute profit accounts for gas costs
-
-**No real trades are executed. No wallet private key is needed.**
-
-## Database Schema
-
-### `trades` Table
-Stores all executed (simulated) trades:
-- Trade details (pair, exchanges, prices, amounts)
-- Profit calculations
-- Execution status and notes
-
-### `balance` Table
-Tracks account balance over time:
-- Current balance
-- Total trades and wins
-- Cumulative profit
-
-### `opportunities` Table
-Logs all detected arbitrage opportunities:
-- Whether opportunity was taken
-- Price spreads across exchanges
-
-## Switching to Live Trading
-
-⚠️ **USE AT YOUR OWN RISK** ⚠️
-
-To enable live trading (NOT RECOMMENDED without thorough testing):
-
-1. **Add Solana Wallet**:
-   ```env
-   PAPER_MODE=false
-   SOLANA_PRIVATE_KEY=your_base58_private_key_here
-   ```
-
-2. **Implement Live Execution**:
-   - Modify `src/trader.js` to use `@solana/web3.js` for real transactions
-   - Add transaction signing and submission logic
-   - Implement proper error handling and retries
-   - Add transaction confirmation waiting
-
-3. **Required Changes**:
-   - Replace `simulateTrade()` with actual Jupiter swap calls
-   - Add wallet management and security
-   - Implement proper slippage protection
-   - Add transaction fee calculations
-   - Handle failed transactions
-
-4. **Testing**:
-   - Start with SMALL amounts on devnet
-   - Monitor closely for the first 24 hours
-   - Verify all trades in blockchain explorer
-
-## Project Structure
-
-```
-solana-arb-bot/
-├── src/
-│   ├── index.js           # Main bot entry point
-│   ├── config.js          # Configuration loader
-│   ├── arbitrage.js       # Opportunity detection
-│   ├── trader.js          # Paper trading logic
-│   ├── discord.js         # Discord notifications
-│   ├── scheduler.js       # Scheduled reports
-│   ├── db/
-│   │   ├── init.js        # Database setup
-│   │   └── queries.js     # Database queries
-│   └── dex/
-│       ├── jupiter.js     # Jupiter price API
-│       ├── raydium.js     # Raydium price API
-│       └── phoenix.js     # Phoenix (placeholder)
-├── data/
-│   └── trading.db         # SQLite database
-├── logs/
-│   └── bot.log            # Bot logs
-├── package.json
-├── .env                   # Your configuration
-├── .env.example           # Example configuration
-├── run.sh                 # Auto-restart wrapper
-├── stop.sh                # Stop script
-└── README.md              # This file
-```
-
-## Monitoring
-
-**View logs:**
-```bash
-tail -f logs/bot.log
-```
-
-**Check if running:**
-```bash
-ps aux | grep "node.*solana-arb-bot"
-```
-
-**Database queries:**
-```bash
-sqlite3 data/trading.db "SELECT * FROM trades ORDER BY timestamp DESC LIMIT 10;"
-sqlite3 data/trading.db "SELECT * FROM balance ORDER BY timestamp DESC LIMIT 1;"
-```
-
-## Troubleshooting
-
-**Bot not finding opportunities:**
-- Arbitrage is rare with current DEX efficiency
-- Try adjusting `MIN_PROFIT_PERCENT` lower (e.g., 0.003 = 0.3%)
-- Add more token pairs to `MONITOR_PAIRS`
-- Check that RPC endpoint is working
-
-**Discord notifications not working:**
-- Verify webhook URL is correct
-- Check channel permissions
-- Look for errors in logs
-
-**High CPU usage:**
-- Increase `UPDATE_INTERVAL` (e.g., 30 minutes)
-- Reduce number of `MONITOR_PAIRS`
-
-**Database locked errors:**
-- Stop the bot before running manual queries
-- Database uses WAL mode for better concurrency
-
-## Performance Notes
-
-- **API Rate Limits**: Respects DEX API limits with delays between requests
-- **Update Frequency**: Default 15 minutes balances accuracy vs. spam
-- **Opportunity Detection**: Compares all exchange pairs for each token
-- **Position Sizing**: Conservative 20% per trade to allow multiple concurrent opportunities
-
-## Security
-
-- ✅ No private keys needed for paper trading
-- ✅ No real transactions executed
-- ✅ Read-only access to DEX price APIs
-- ✅ Local SQLite database (no external DB)
-- ⚠️ Discord webhook URL in .env (keep secure)
-
-## Future Enhancements
-
-- [ ] Phoenix DEX integration (requires on-chain SDK)
-- [ ] More token pairs and cross-pair arbitrage
-- [ ] MEV protection for live trading
-- [ ] Backtesting mode with historical data
-- [ ] Web dashboard for monitoring
-- [ ] Mobile notifications (Telegram/SMS)
-- [ ] Machine learning for opportunity prediction
-
-## License
-
-MIT
-
-## Disclaimer
-
-This software is provided as-is for educational and testing purposes. Paper trading results do not guarantee real trading performance. Use live trading at your own risk. The authors are not responsible for any financial losses.
+A production-ready Solana arbitrage bot that monitors price discrepancies across **Raydium**, **Orca**, **Jupiter**, and **Meteora** for the tokens **$JUP**, **$PENGU**, **$BONK**, and **SOL** — executing profitable trades via **Jito bundles**.
 
 ---
 
-**Need help?** Check logs first, then Discord notifications for clues. For live trading questions, consult Solana and Jupiter documentation.
+## ⚠️ Risk Warning
+
+> **USE AT YOUR OWN RISK.** Arbitrage bots operate in an adversarial environment. You can and will lose money if:
+> - Prices change between detection and execution (slippage)
+> - Network congestion causes transactions to fail
+> - Your bot has bugs or is misconfigured
+> - You run with insufficient SOL for fees
+>
+> **Always start with `DRY_RUN=true` and verify the bot's behaviour before enabling live trading.**
+
+---
+
+## Features
+
+- 📡 **Multi-DEX monitoring** — Jupiter, Raydium, Orca, Meteora in parallel
+- 💰 **Smart opportunity detection** — profit threshold by % and USD
+- 🚀 **Jito bundle execution** — atomic 3-tx bundles with tip scaling
+- 🧪 **Dry-run mode** — simulate without spending real SOL
+- 🛡️ **Safety rails** — balance checks, rate limiting, slippage protection
+- 📊 **Structured logging** — coloured, timestamped, BigInt-safe
+
+---
+
+## Token Pairs Monitored
+
+| Pair      | Direction           |
+|-----------|---------------------|
+| JUP/SOL   | Buy JUP sell SOL ↔  |
+| PENGU/SOL | Buy PENGU sell SOL ↔|
+| BONK/SOL  | Buy BONK sell SOL ↔ |
+| JUP/BONK  | Triangular via SOL  |
+
+---
+
+## Prerequisites
+
+- **Node.js** ≥ 18
+- A Solana wallet with SOL (recommend 0.5+ SOL to start)
+- A private RPC endpoint (recommended: [Helius](https://helius.dev), [Triton](https://triton.one), [QuickNode](https://quicknode.com))
+- A Jito UUID (optional for dry-run, required for live trading)
+
+---
+
+## Installation
+
+```bash
+# Clone or copy the project
+cd solana-arb-bot
+
+# Install dependencies
+npm install
+
+# Copy env template
+cp .env.example .env
+
+# Edit .env with your settings
+nano .env
+```
+
+---
+
+## Configuration
+
+Edit `.env` (copy from `.env.example`):
+
+| Variable | Default | Description |
+|---|---|---|
+| `RPC_URL` | mainnet-beta | Solana RPC HTTP endpoint |
+| `RPC_WS_URL` | mainnet-beta | Solana RPC WebSocket endpoint |
+| `WALLET_PRIVATE_KEY` | — | Base58 private key (required) |
+| `JITO_UUID` | — | Jito block engine UUID |
+| `JITO_TIP_LAMPORTS` | 10000 | Minimum Jito tip (lamports) |
+| `MIN_PROFIT_PCT` | 1.0 | Minimum profit % to flag |
+| `MIN_PROFIT_USD` | 0.50 | Minimum profit USD to flag |
+| `TRADE_SIZE_SOL` | 0.1 | Trade size in SOL equivalent |
+| `MAX_SLIPPAGE_BPS` | 50 | Max slippage (50 = 0.5%) |
+| `SCAN_INTERVAL_MS` | 1000 | Scan frequency in ms |
+| `DRY_RUN` | **true** | Simulate without executing |
+| `MAX_TRADES_PER_MINUTE` | 5 | Rate limit for live trades |
+| `LOG_LEVEL` | INFO | DEBUG / INFO / WARN / ERROR |
+
+---
+
+## Getting a Jito UUID
+
+1. Go to [https://jito.network](https://jito.network)
+2. Connect your wallet
+3. Generate a UUID under "Block Engine Access"
+4. Set `JITO_UUID=your-uuid-here` in `.env`
+
+The UUID is used as a Bearer token in the `Authorization` header when submitting bundles. Without it you can still submit bundles (unauthenticated), but with lower priority.
+
+---
+
+## Running
+
+### Development (ts-node, hot-reload off)
+```bash
+npm run dev
+```
+
+### Development (watch mode)
+```bash
+npm run dev:watch
+```
+
+### Production (compiled)
+```bash
+npm run build
+npm start
+```
+
+### Type-check only
+```bash
+npm run typecheck
+```
+
+---
+
+## Recommended First-Run Checklist
+
+1. ✅ Set `DRY_RUN=true`
+2. ✅ Set a real `WALLET_PRIVATE_KEY` (read-only or burner wallet)
+3. ✅ Set a private `RPC_URL` (public RPC will rate-limit you)
+4. ✅ Start with `TRADE_SIZE_SOL=0.05` (small trades)
+5. ✅ Watch the logs for a few minutes
+6. ✅ Verify opportunity detection makes sense
+7. ✅ Check profit calculations match expectations
+8. ⚠️ Only then set `DRY_RUN=false`
+
+---
+
+## Architecture
+
+```
+src/
+├── index.ts              — Main loop, orchestration
+├── config.ts             — .env loader + validation
+├── types.ts              — TypeScript interfaces
+├── monitor/
+│   ├── jupiter.ts        — Jupiter v6 quote API
+│   ├── raydium.ts        — Raydium CLMM pools + Jupiter fallback
+│   ├── orca.ts           — Orca Whirlpool pools + Jupiter fallback
+│   └── meteora.ts        — Meteora DLMM pairs + Jupiter fallback
+├── scanner/
+│   └── opportunities.ts  — Cross-DEX opportunity detection
+├── executor/
+│   ├── builder.ts        — Jupiter swap tx builder, balance checks
+│   └── jito.ts           — Jito bundle submission
+└── utils/
+    ├── logger.ts         — Coloured structured logger
+    └── prices.ts         — USD prices (Jupiter → CoinGecko fallback)
+```
+
+### Opportunity Detection Flow
+
+```
+For each pair (JUP/SOL, PENGU/SOL, BONK/SOL, JUP/BONK):
+  1. Fetch buy quote from all 4 DEXes in parallel
+  2. For each (buyDex, sellDex) combination:
+     a. Simulate: spend X on buyDex → get Y tokens
+     b. Simulate: sell Y tokens on sellDex → get Z back
+     c. Profit = Z - X
+     d. Flag if profit% >= MIN_PROFIT_PCT OR profitUSD >= MIN_PROFIT_USD
+  3. Sort by USD profit descending
+  4. Deduplicate per pair (keep best only)
+```
+
+### Jito Bundle Structure
+
+```
+Bundle = [
+  tx1: swap leg 1  (buy on cheapest DEX via Jupiter)
+  tx2: swap leg 2  (sell on most expensive DEX via Jupiter)
+  tx3: tip payment (to Jito tip account)
+]
+```
+
+Tip = `max(JITO_TIP_LAMPORTS, 1% of expected profit in lamports)`
+
+---
+
+## Safety Features
+
+| Feature | Implementation |
+|---|---|
+| Dry-run mode | Default `true` — skips all execution |
+| Min SOL reserve | Keeps 0.05 SOL for fees at all times |
+| Rate limiter | Sliding window, max N trades/minute |
+| Slippage protection | `MAX_SLIPPAGE_BPS` passed to Jupiter |
+| DEX fault isolation | Each DEX fails independently |
+| Exponential backoff | On 429 rate-limit responses |
+| BigInt lamport math | No floating-point rounding errors |
+
+---
+
+## Fee Modeling
+
+All profit thresholds (`MIN_PROFIT_PCT`, `MIN_PROFIT_USD`) are evaluated against **net profit after fees** — not gross quote output. The bot estimates:
+
+| Fee Component | Amount | Notes |
+|---|---|---|
+| Base tx fee | 5,000 lam/tx × 2 legs | Solana network floor |
+| Priority fee | ~25,000 lam/tx × 2 legs | Auto mode conservative estimate |
+| Jito tip | configurable (default 10,000 lam) | Only in live mode |
+| **Total (dry-run)** | **~60,000 lam (~$0.009 at $150 SOL)** | |
+| **Total (live)** | **~70,000+ lam** | Depends on Jito tip config |
+
+At startup the bot logs the **fee floor %** for your current trade size and SOL price so you can set `MIN_PROFIT_PCT` appropriately.
+
+> Example: 0.1 SOL trade at $150/SOL = $15 USD. Fee floor ≈ 0.04% gross = ~$0.006. Setting `MIN_PROFIT_PCT=0.1` means you need at least $0.015 net after fees — a reasonable margin.
+
+---
+
+## Limitations & Caveats
+
+- **Pool-price vs. simulated-price gap**: Raydium/Orca/Meteora direct API prices don't account for price impact on your specific trade size. For large trades, actual output may be lower.
+- **Staleness**: Pool price caches are 60 s. Actual on-chain prices may differ.
+- **MEV competition**: Real arbitrage opportunities are competed for by professional MEV bots. You may win bundles rarely.
+- **RPC rate limits**: Public RPC endpoints will throttle you. Use a private endpoint.
+- **Jupiter fallback**: Some per-DEX quotes route through Jupiter with `onlyDirectRoutes=true`. If Jupiter doesn't have the DEX indexed, the quote is omitted.
+
+---
+
+## Disclaimer
+
+This software is provided **as-is** for educational purposes. The authors are not responsible for financial losses. Crypto trading is risky. DeFi is risky. Arbitrage bots are not guaranteed profitable. Always understand what you're running.

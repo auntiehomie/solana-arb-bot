@@ -1,0 +1,145 @@
+/**
+ * Cross-DEX arbitrage opportunity scanner.
+ *
+ * For each token pair, compare quotes across DEXes and flag opportunities
+ * where buying on the cheaper DEX and selling on the more expensive one
+ * yields a net profit above thresholds.
+ */
+
+import crypto from 'crypto';
+import { ArbitrageOpportunity, DexQuote, PairQuotes, Token, TOKENS, UsdPrices } from '../types';
+import { logger } from '../utils/logger';
+import { toUsd } from '../utils/prices';
+
+export interface ScannerConfig {
+  minProfitPct: number;
+  minProfitUsd: number;
+}
+
+// Anything above this is almost certainly a stale/spot-price artifact, not real arb
+const MAX_REALISTIC_PROFIT_PCT = 15;
+
+/**
+ * Given quotes from multiple DEXes for the same pair, find all profitable
+ * buy-on-A / sell-on-B combinations.
+ */
+export function scanOpportunities(
+  pairQuotesList: PairQuotes[],
+  usdPrices: UsdPrices,
+  cfg: ScannerConfig
+): ArbitrageOpportunity[] {
+  const opportunities: ArbitrageOpportunity[] = [];
+
+  for (const pairQuotes of pairQuotesList) {
+    const { inputSymbol, outputSymbol, quotes } = pairQuotes;
+    if (quotes.length < 2) continue;
+
+    const inputToken = TOKENS[inputSymbol];
+    const outputToken = TOKENS[outputSymbol];
+    if (!inputToken || !outputToken) continue;
+
+    const inputUsdPrice = usdPrices[inputSymbol] ?? 0;
+
+    // Compare every (buy DEX, sell DEX) pair
+    for (let i = 0; i < quotes.length; i++) {
+      for (let j = 0; j < quotes.length; j++) {
+        if (i === j) continue;
+
+        const buyQuote = quotes[i];   // buy outputToken with inputToken
+        const sellQuote = quotes[j];  // sell outputToken back for inputToken
+
+        // Sanity checks
+        if (buyQuote.outputAmount <= 0n) continue;
+        if (sellQuote.price <= 0) continue;
+
+        // Simulate: spend inputAmount on buyQuote → get outputAmount of outputToken
+        // Then on sellQuote, treat outputAmount as "sell" amount by using price inversion:
+        //   sell outputToken → inputToken at sellQuote's (inverted) price
+        //
+        // sellQuote is also quoted as inputToken→outputToken, so its price = outputHuman/inputHuman
+        // To sell outputToken→inputToken the price is 1/sellQuote.price (inputToken per outputToken)
+        //
+        // Expected return from selling buyQuote.outputAmount of outputToken:
+        //   return (inputToken units) = buyOutputLamports * (1 / sellQuote.price)
+        //
+        // But we need to compare in raw units (lamports), so:
+        //   returnInputLamports = buyOutputLamports * inputDecimals / outputDecimals / sellQuote.price
+
+        const buyOutputHuman =
+          Number(buyQuote.outputAmount) / Math.pow(10, outputToken.decimals);
+        const returnInputHuman = buyOutputHuman / sellQuote.price;
+        const returnInputLamports = BigInt(
+          Math.floor(returnInputHuman * Math.pow(10, inputToken.decimals))
+        );
+
+        const inputAmt = buyQuote.inputAmount;
+
+        if (returnInputLamports <= inputAmt) continue; // no profit
+
+        const profitLamports = returnInputLamports - inputAmt;
+        const profitPct =
+          (Number(profitLamports) / Number(inputAmt)) * 100;
+
+        const profitUsd =
+          inputUsdPrice > 0
+            ? toUsd(profitLamports, inputToken.decimals, inputUsdPrice)
+            : 0;
+
+        if (profitPct < cfg.minProfitPct && profitUsd < cfg.minProfitUsd) {
+          continue;
+        }
+
+        // Sanity check: profits above MAX_REALISTIC_PROFIT_PCT are almost always
+        // an artifact of stale pool spot prices not accounting for price impact.
+        // Skip them to avoid fake signals.
+        if (profitPct > MAX_REALISTIC_PROFIT_PCT) {
+          logger.debug(
+            `⚠️  Skipping suspicious ${profitPct.toFixed(2)}% opportunity ` +
+            `(${inputSymbol}→${outputSymbol} ${buyQuote.dex}→${sellQuote.dex}) — ` +
+            `likely pool spot price artifact`
+          );
+          continue;
+        }
+
+        const opp: ArbitrageOpportunity = {
+          id: crypto.randomUUID(),
+          inputSymbol,
+          outputSymbol,
+          buyDex: buyQuote.dex,
+          sellDex: sellQuote.dex,
+          buyQuote,
+          sellQuote,
+          inputAmount: inputAmt,
+          expectedOutputAfterSell: returnInputLamports,
+          profitAmount: profitLamports,
+          profitPct,
+          profitUsd,
+          detectedAt: Date.now(),
+        };
+
+        opportunities.push(opp);
+
+        logger.info(
+          `💰 Opportunity: ${inputSymbol}→${outputSymbol}→${inputSymbol}` +
+          ` | Buy on ${buyQuote.dex}, sell on ${sellQuote.dex}` +
+          ` | Profit: ${profitPct.toFixed(3)}% / $${profitUsd.toFixed(4)}`
+        );
+      }
+    }
+  }
+
+  // Sort by USD profit descending (fall back to pct)
+  opportunities.sort((a, b) => {
+    if (b.profitUsd !== a.profitUsd) return b.profitUsd - a.profitUsd;
+    return b.profitPct - a.profitPct;
+  });
+
+  // Deduplicate: keep only best opportunity per (inputSymbol, outputSymbol, buyDex, sellDex) pair
+  const seen = new Set<string>();
+  return opportunities.filter((opp) => {
+    const key = `${opp.inputSymbol}:${opp.outputSymbol}:${opp.buyDex}:${opp.sellDex}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}

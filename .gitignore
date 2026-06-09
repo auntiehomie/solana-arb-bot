@@ -1,17 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment — NEVER commit private keys or secrets
 .env
-data/
-*.db
-*.db-shm
-*.db-wal
+
+# Logs
 logs/
 *.log
-*.pid
-node_modules/
-dist/
-pycache/
-*.pyc
 
+# OS
 .DS_Store
-.env
-.env.save
-.env.save
+
+# Editor
+.vscode/
+.idea/

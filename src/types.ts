@@ -32,9 +32,28 @@ export const TOKENS: Record<string, Token> = {
     mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
     decimals: 6,
   },
+  USDT: {
+    symbol: 'USDT',
+    mint: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
+    decimals: 6,
+  },
 };
 
 export type TokenSymbol = keyof typeof TOKENS;
+
+/** Liquidity-related mint addresses */
+export const EXTRA_TOKENS = {
+  mSOL: {
+    symbol: 'mSOL',
+    mint: 'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So',
+    decimals: 9,
+  } as Token,
+  stSOL: {
+    symbol: 'stSOL',
+    mint: '7dHbWXmci3dT8UFYWYZweBLXgycu7Y3iL6trKn1Y7ARj',
+    decimals: 9,
+  } as Token,
+};
 
 // ─── DEX identifiers ─────────────────────────────────────────────────────────
 

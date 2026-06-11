@@ -15,6 +15,7 @@ import axios from 'axios';
 import { CircularOpportunity } from '../scanner/circular';
 import { Config } from '../config';
 import { logger } from '../utils/logger';
+import { logTradeAttemptStart, logTradeResult } from '../utils/jsonl-logger';
 
 const SWAP_URL = 'https://api.jup.ag/swap/v1/swap';
 const QUOTE_URL_PRO = 'https://api.jup.ag/swap/v1/quote';
@@ -149,6 +150,22 @@ export async function executeCircular(
     `Expected: ${opp.profitPct.toFixed(3)}% / $${opp.profitUsd.toFixed(4)}`
   );
 
+  // Log trade attempt to JSONL
+  logTradeAttemptStart(
+    opp.token.symbol,
+    opp.inputAmount,
+    opp.outputAmount,
+    opp.profitAmount,
+    opp.profitPct,
+    opp.profitUsd,
+    0, // netProfitSOL — will be updated at result
+    opp.netProfitUsd,
+    opp.profitUsd - opp.netProfitUsd, // feeSOL = grossProfitUSD - netProfitUSD
+    opp.profitUsd - opp.netProfitUsd, // feeUSD
+    cfg.dryRun,
+    opp.route,
+  );
+
   // Determine the intermediate token from the stored buy quote
   const buyQuoteData = opp.buyQuoteRaw as { outputMint?: string; outAmount?: string };
   const intermediateMint = buyQuoteData?.outputMint;
@@ -217,6 +234,30 @@ export async function executeCircular(
   } else {
     logger.warn(`Leg results — leg1: ${conf1.success ? '✅' : '❌ ' + conf1.error} | leg2: ${conf2.success ? '✅' : '❌ ' + conf2.error}`);
   }
+
+  // Log result to JSONL — fee in SOL estimated from feeUSD / SOL price
+  const solPrice = opp.profitUsd > 0 && opp.profitAmount > 0n
+    ? opp.profitUsd / (Number(opp.profitAmount) / 1e9) : 0;
+  const feeUSD = opp.profitUsd - opp.netProfitUsd;
+  const feeSOL = solPrice > 0 ? feeUSD / solPrice : 0;
+  logTradeResult(
+    opp.token.symbol,
+    opp.inputAmount,
+    opp.outputAmount,
+    opp.profitAmount,
+    opp.profitPct,
+    opp.profitUsd,
+    opp.netProfitPct > 0 ? (opp.netProfitPct / 100) * (Number(opp.inputAmount) / 1e9) : 0,
+    opp.netProfitUsd,
+    feeSOL,
+    feeUSD,
+    bothOk,
+    cfg.dryRun,
+    opp.route,
+    leg1Sig ?? undefined,
+    leg2Sig ?? undefined,
+    bothOk ? undefined : `leg1=${conf1.error ?? 'ok'} leg2=${conf2.error ?? 'ok'}`,
+  );
 
   return {
     success: bothOk,

@@ -9,7 +9,11 @@
     "dev": "ts-node --project tsconfig.json src/index.ts",
     "dev:watch": "nodemon --exec ts-node src/index.ts --watch src --ext ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "validate:env": "node scripts/validate-env.js",
+    "benchmark:fees": "node scripts/benchmark-fees.js",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@jup-ag/api": "^6.0.0",
@@ -19,10 +23,13 @@
     "dotenv": "^16.4.7"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.0.0",
+    "jest": "^30.4.2",
+    "nodemon": "^3.1.9",
+    "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.3",
-    "nodemon": "^3.1.9"
+    "typescript": "^5.7.3"
   },
   "engines": {
     "node": ">=18.0.0"

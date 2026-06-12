@@ -12,6 +12,9 @@
     "lint": "eslint src --ext .ts",
     "validate:env": "node scripts/validate-env.js",
     "benchmark:fees": "node scripts/benchmark-fees.js",
+    "pnl": "npx ts-node scripts/pnl-aggregator.ts",
+    "pnl:today": "npx ts-node scripts/pnl-aggregator.ts --days 1",
+    "pnl:json": "npx ts-node scripts/pnl-aggregator.ts --json",
     "test": "jest",
     "test:watch": "jest --watch"
   },

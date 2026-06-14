@@ -15,6 +15,7 @@
     "pnl": "npx ts-node scripts/pnl-aggregator.ts",
     "pnl:today": "npx ts-node scripts/pnl-aggregator.ts --days 1",
     "pnl:json": "npx ts-node scripts/pnl-aggregator.ts --json",
+    "pnl:daily": "npx ts-node scripts/daily-pnl-report.ts",
     "test": "jest",
     "test:watch": "jest --watch"
   },

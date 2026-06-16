@@ -14,6 +14,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { ensureDir } from './fs-utils';
 
 const LOG_DIR = 'logs';
 const TRADES_FILE = path.join(LOG_DIR, 'trades.jsonl');
@@ -61,18 +62,6 @@ export interface TradeLogEntry {
 
 // ─── Logger ────────────────────────────────────────────────────────────────────
 
-let _initialised = false;
-
-function ensureLogDir(): void {
-  if (_initialised) return;
-  _initialised = true;
-  try {
-    fs.mkdirSync(LOG_DIR, { recursive: true });
-  } catch {
-    // directory already exists or cannot be created — fall back silently
-  }
-}
-
 /**
  * Format a timestamp as ISO-8601 without milliseconds for readability.
  */
@@ -90,7 +79,7 @@ function nowISO(): string {
  */
 export function logTradeAttempt(entry: TradeLogEntry): void {
   try {
-    ensureLogDir();
+    ensureDir(LOG_DIR);
     const line = JSON.stringify(entry) + '\n';
     fs.appendFileSync(TRADES_FILE, line, 'utf-8');
   } catch (err) {

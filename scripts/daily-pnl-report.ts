@@ -11,14 +11,9 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { execSync } from 'node:child_process';
+import { ensureDir } from '../src/utils/fs-utils';
 
 const LOGS_DIR = path.join('logs', 'daily');
-
-function ensureDir(dir: string) {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
 
 function runReport(): string {
   // Run the pnl-aggregator for last 1 day, JSON output

@@ -57,6 +57,7 @@ export interface Config {
   startingCapitalUsd: number;
   tradeSizes: number[];
   simulateBeforeExecute: boolean;
+  multiRelayEndpoints: string[];
 }
 
 let _config: Config | null = null;
@@ -84,6 +85,7 @@ export function loadConfig(): Config {
     startingCapitalUsd: parseFloat_('STARTING_CAPITAL_USD', 15),
     tradeSizes: (process.env.TRADE_SIZES || '0.1').split(',').map(s => parseFloat(s)).filter(n => !isNaN(n) && n > 0),
     simulateBeforeExecute: parseBool('SIMULATE_BEFORE_EXECUTE', true),
+    multiRelayEndpoints: (process.env.MULTI_RELAY_ENDPOINTS || '').split(',').filter(Boolean),
   };
 
   return _config!;

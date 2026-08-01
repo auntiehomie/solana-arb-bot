@@ -43,5 +43,5 @@ jobs:
           if npm run test --if-present 2>&1 | grep -q "missing script"; then
             echo "No test script, skipping"
           else
-            npm test
+            npm test -- --coverage=false
           fi

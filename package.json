@@ -17,7 +17,8 @@
     "pnl:json": "npx ts-node scripts/pnl-aggregator.ts --json",
     "pnl:daily": "npx ts-node scripts/daily-pnl-report.ts",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@jup-ag/api": "^6.0.0",
@@ -30,7 +31,9 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^22.0.0",
     "eslint": "^10.8.0",
+    "husky": "^9.1.7",
     "jest": "^30.4.2",
+    "lint-staged": "^15.2.10",
     "nodemon": "^3.1.9",
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
@@ -50,5 +53,11 @@
     "orca",
     "meteora"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "lint-staged": {
+    "*": {
+      "{js,ts,json,md}": "prettier --write",
+      "{js,ts}": "eslint --fix"
+    }
+  }
 }

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [master, main]
   pull_request:
-    branches: [main, master]
+    branches: [master, main]
 
 jobs:
   ci:
@@ -19,6 +19,29 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
-      - run: npm run lint --if-present
-      - run: npm run typecheck --if-present || npx tsc --noEmit --skipLibCheck
-      - run: npm test --if-present
+      - name: Lint
+        run: |
+          if npm run lint --if-present 2>&1 | grep -q "missing script"; then
+            echo "No lint script, skipping"
+          else
+            npm run lint
+          fi
+      - name: Typecheck
+        run: |
+          if npm run typecheck --if-present 2>&1 | grep -q "missing script"; then
+            if npm run check --if-present 2>&1 | grep -q "missing script"; then
+              echo "Running tsc --noEmit --skipLibCheck"
+              npx tsc --noEmit --skipLibCheck
+            else
+              npm run check
+            fi
+          else
+            npm run typecheck
+          fi
+      - name: Test
+        run: |
+          if npm run test --if-present 2>&1 | grep -q "missing script"; then
+            echo "No test script, skipping"
+          else
+            npm test
+          fi

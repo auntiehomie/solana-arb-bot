@@ -16,6 +16,7 @@ import { CircularOpportunity } from '../scanner/circular';
 import { Config } from '../config';
 import { logger } from '../utils/logger';
 import { logTradeAttemptStart, logTradeResult } from '../utils/jsonl-logger';
+import { simulateTradePair } from './simulation';
 
 const SWAP_URL = 'https://api.jup.ag/swap/v1/swap';
 const QUOTE_URL_PRO = 'https://api.jup.ag/swap/v1/quote';
@@ -195,6 +196,17 @@ export async function executeCircular(
 
   if (!leg1Tx) return { success: false, error: 'Failed to build leg 1 (buy) transaction' };
   if (!leg2Tx) return { success: false, error: 'Failed to build leg 2 (sell) transaction' };
+
+  // Pre-flight simulation — skip trade if either leg would fail
+  if (cfg.simulateBeforeExecute) {
+    logger.info('Running pre-flight simulation...');
+    const { safe, leg1: simLeg1, leg2: simLeg2 } = await simulateTradePair(leg1Tx, leg2Tx, connection);
+    if (!safe) {
+      const failLeg = !simLeg1.success ? 'Leg1(buy)' : 'Leg2(sell)';
+      const failReason = !simLeg1.success ? simLeg1.error : simLeg2.error;
+      return { success: false, error: `Pre-flight simulation failed: ${failLeg} — ${failReason}` };
+    }
+  }
 
   // Fire both simultaneously
   logger.info('Firing both legs simultaneously...');

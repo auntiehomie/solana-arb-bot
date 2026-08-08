@@ -21,27 +21,24 @@ jobs:
       - run: npm ci
       - name: Lint
         run: |
-          if npm run lint --if-present 2>&1 | grep -q "missing script"; then
-            echo "No lint script, skipping"
-          else
+          if node -e "process.exit(require('./package.json').scripts?.lint ? 0 : 1)"; then
             npm run lint
+          else
+            echo "No lint script, skipping"
           fi
       - name: Typecheck
         run: |
-          if npm run typecheck --if-present 2>&1 | grep -q "missing script"; then
-            if npm run check --if-present 2>&1 | grep -q "missing script"; then
-              echo "Running tsc --noEmit --skipLibCheck"
-              npx tsc --noEmit --skipLibCheck
-            else
-              npm run check
-            fi
-          else
+          if node -e "process.exit(require('./package.json').scripts?.typecheck ? 0 : 1)"; then
             npm run typecheck
+          elif node -e "process.exit(require('./package.json').scripts?.check ? 0 : 1)"; then
+            npm run check
+          else
+            echo "No typecheck or check script, skipping"
           fi
       - name: Test
         run: |
-          if npm run test --if-present 2>&1 | grep -q "missing script"; then
-            echo "No test script, skipping"
-          else
+          if node -e "process.exit(require('./package.json').scripts?.test ? 0 : 1)"; then
             npm test -- --coverage=false
+          else
+            echo "No test script, skipping"
           fi
